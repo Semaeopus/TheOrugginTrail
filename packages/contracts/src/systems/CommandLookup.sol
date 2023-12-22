@@ -11,7 +11,7 @@ contract CommandLookups {
     // some maps for lookups
     mapping (string => ActionType) public cmdLookup;
     mapping (string => DirectionType) public dirLookup;
-    
+
     function initCLS() public returns (uint32) {
         Output.set('initCES called...');
         setupCmds();
@@ -35,10 +35,13 @@ contract CommandLookups {
         cmdLookup["OPEN"] = ActionType.Open;
 
         dirLookup["NORTH"] = DirectionType.North;
+        dirLookup["SOUTH"] = DirectionType.South;
+        dirLookup["EAST"] = DirectionType.East;
+        dirLookup["WEST"] = DirectionType.West;
     }
 
     function setupDirLookups () private returns (uint32) {
         //dirLookup[]
     }
-    
+
 }
