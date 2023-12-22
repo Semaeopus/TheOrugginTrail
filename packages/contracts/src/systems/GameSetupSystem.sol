@@ -17,7 +17,7 @@ contract GameSetupSystem is System {
     function init() public returns (uint32) {
 
         setupWorld();
-        
+
         // we are right now initing the data in the
         Output.set('init called...');
         return 0;
@@ -26,9 +26,9 @@ contract GameSetupSystem is System {
     // we need to somewhere somehow read in the possible verbs if we
     // want users to have their own VERBS
     function setupCmds(uint32 cmds) public returns (uint32) {
-       // maybe populate the unused VERB tables etc? for now we just use
-       // the mapping thats in the GE.
-       return 23;
+        // maybe populate the unused VERB tables etc? for now we just use
+        // the mapping thats in the GE.
+        return 23;
     }
 
     function setupWorld() private {
@@ -36,38 +36,34 @@ contract GameSetupSystem is System {
         // createRoom(KPlain, 'You are on a plain with the wind blowing', [createDir(DirectionType.North,KBarn),createDir(DirectionType.East, KMountainPath)]);
         // but the dynamic arrays we use must be etup and passed as they are below
 
-        uint32 KPlain = 0;
+        uint32 KPlain = 2;
         uint32 KBarn = 1;
-        uint32 KMountainPath = 2;
+        uint32 KMountainPath = 0;
 
         // plain has two exits, the mountain path and the barn
-        uint32[] memory plainDirs = new uint32[](2);
-        plainDirs[0] = createDir(DirectionType.North, KBarn);
-        plainDirs[1] = createDir(DirectionType.East, KMountainPath);
-        createRoom(KPlain, 'You are on a plain with the wind blowing', plainDirs);
+        RoomStore.pushDirObjIds(KPlain,  createDir(DirectionType.North, KBarn));
+        RoomStore.pushDirObjIds(KPlain,  createDir(DirectionType.East, KMountainPath));
+        RoomStore.setDescription(KPlain,  'You are on a plain with the wind blowing');
 
         // barn has one exit, back to the plain
-        uint32[] memory barnDirs = new uint32[](1);
-        barnDirs[0] = createDir(DirectionType.South, KPlain);
-        createRoom(KBarn, 'You are in the barn', barnDirs);
+        RoomStore.pushDirObjIds(KBarn,  createDir(DirectionType.South, KPlain));
+        RoomStore.setDescription(KBarn, 'You are in the barn');
 
         // mountain path has only one exit now, back to the plain
-        uint32[] memory mountainDirs = new uint32[](1);
-        mountainDirs[0] = createDir(DirectionType.West, KPlain);
-        createRoom(KMountainPath, 'You are on the mountain path, you cant go any further though', mountainDirs);
+        RoomStore.pushDirObjIds(KMountainPath,  createDir(DirectionType.North, KPlain));
+        RoomStore.pushDirObjIds(KMountainPath,  createDir(DirectionType.South, KPlain));
+        RoomStore.pushDirObjIds(KMountainPath,  createDir(DirectionType.East, KPlain));
+        RoomStore.pushDirObjIds(KMountainPath,  createDir(DirectionType.West, KPlain));
+        RoomStore.pushDirObjIds(KMountainPath,  createDir(DirectionType.North, KPlain));
+        RoomStore.setDescription(KMountainPath,  'You are on the mountain path, you cant go any further though');
+
     }
 
     function createDir(DirectionType directionType, uint32 roomId) private returns (uint32){
         DirObjStore.setDirType(dirId, directionType);
         DirObjStore.setRoomId(dirId, roomId);
-        return ++dirId;
-    }
 
-    function createRoom(uint32 roomId, string memory description, uint32[] memory dirs) private {
-        RoomStore.setDescription(roomId, description);
-        for (uint8 i = 0; i < dirs.length; i++) {
-            RoomStore.pushDirObjIds(roomId, dirs[i]);
-        }
+        return ++dirId;
     }
 }
 
