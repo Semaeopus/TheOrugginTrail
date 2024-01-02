@@ -31,7 +31,7 @@ export default mudConfig({
         ],
         // probably pointless
         BiomeType: [
-            "None","Tundra", "Arctic", "Temporate",
+            "None", "Tundra", "Arctic", "Temporate",
             "Alpine", "Jungle", "Faery"
         ],
         // Terrain has paths
@@ -59,7 +59,7 @@ export default mudConfig({
         //
         ActionType: [
             "None", "Go", "Move", "Loot", "Describe",
-            "Take", "Kick", "Lock", "Unlock", "Open"
+            "Take", "Kick", "Lock", "Unlock", "Open", "Drop"
         ],
         // add these to rooms for stuff to do
         ObjectType: [

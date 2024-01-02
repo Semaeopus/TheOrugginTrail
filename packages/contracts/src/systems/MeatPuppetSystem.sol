@@ -64,7 +64,7 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
         console.log("--------->DescribeRoom:");
         RoomStoreData memory currRoom = RoomStore.get(rId);
         return string(abi.encodePacked(currRoom.description, "\n",
-            "You can go", _describeActions(rId), _describeObjects(rId))
+            "You can go", _describeActions(rId), _describeObjectsInRoom(rId), _describeObjectsInInventory())
         );
     }
 
@@ -77,7 +77,6 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
         string memory msgStr;
         for (uint8 i = 0; i < currRm.dirObjIds.length; i++) {
             DirObjStoreData memory dir = DirObjStore.get(currRm.dirObjIds[i]);
-
             if (dir.dirType == DirectionType.North) {
                 dirStrings[i] = " North";
             } else if (dir.dirType == DirectionType.East) {
@@ -94,32 +93,23 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
         return msgStr;
     }
 
-    function _describeObjects(uint32 rId) private returns (string memory) {
+
+    function _describeObjectsInRoom(uint32 rId) private returns (string memory) {
+        console.log("--------->DescribeObjectsInRoom:");
+        return _describeObjects(RoomStore.get(rId).objectIds, "\nThis room contains ");
+    }
+
+    function _describeObjectsInInventory() private returns (string memory) {
+        console.log("--------->DescribeObjectsInInventory:");
+        return _describeObjects(Player.getObjectIds(CurrentPlayerId.get()), "\nYour Aldi carrier bag contains  ");
+    }
+
+    function _describeObjects(uint32[] memory objectIds, string memory preText) private returns (string memory) {
         console.log("--------->DescribeObjects:");
-
-        RoomStoreData memory currRm = RoomStore.get(rId);
-
-        if (currRm.objectIds.length == 0) return "";
-
-        string[8] memory objStrings;
-        string memory msgStr;
-        for (uint8 i = 0; i < currRm.objectIds.length; i++) {
-            ObjectStoreData memory obj = ObjectStore.get(currRm.objectIds[i]);
-
-            if (obj.objectType == ObjectType.Ball) {
-                objStrings[i] = " Ball";
-            } else if (obj.objectType == ObjectType.Key) {
-                objStrings[i] = " Key";
-            } else if (obj.objectType == ObjectType.Knife) {
-                objStrings[i] = " Knife";
-            } else if (obj.objectType == ObjectType.Bottle) {
-                objStrings[i] = " Bottle";
-            }
-        }
-
-        msgStr = "\nThis room contains";
-        for (uint16 i = 0; i < objStrings.length; i++) {
-            msgStr = string(abi.encodePacked(msgStr, objStrings[i]));
+        if (objectIds.length == 0) return "";
+        string memory msgStr = preText;
+        for (uint8 i = 0; i < objectIds.length; i++) {
+            msgStr = string(abi.encodePacked(msgStr, reverseObjLookup[ObjectStore.get(objectIds[i]).objectType]));
         }
         return msgStr;
     }
@@ -140,6 +130,9 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
 
         if (cmdLookup[tok1] == ActionType.Take) {
             return _take(tokens, rId);
+        } else if (cmdLookup[tok1] == ActionType.Drop) {
+            return _drop(tokens, rId);
+
         }
 
         return 0;
@@ -150,24 +143,15 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
         console.log("----->TAKE :", tokens[1]);
         uint8 tok_err;
         string memory tok = tokens[1];
-
         ObjectType objType = objLookup[tok];
-
         if (objType != ObjectType.None) {
-
             uint32[] memory objIds = RoomStore.getObjectIds(rId);
-
             for(uint8 i = 0 ; i < objIds.length ; i++) {
-
                 ObjectType testType = ObjectStore.getObjectType(objIds[i]);
-
                 if(testType == objType) {
-
                     Output.set("You picked it up");
                     Player.pushObjectIds(CurrentPlayerId.get(), objIds[i]);
-
                     delete objIds[i];
-
                     RoomStore.setObjectIds(rId, objIds);
                     break;
                 }
@@ -177,6 +161,25 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
         return 0;
     }
 
+    function _drop(string[] memory tokens, uint32 rId) private returns (uint8 err) {
+        console.log("----->TAKE :", tokens[1]);
+        uint8 tok_err;
+        string memory tok = tokens[1];
+        ObjectType objType = objLookup[tok];
+        if (objType != ObjectType.None) {
+            uint32[] memory objIds = Player.getObjectIds(CurrentPlayerId.get());
+            for(uint8 i = 0 ; i < objIds.length ; i++) {
+                ObjectType testType = ObjectStore.getObjectType(objIds[i]);
+                if(testType == objType) {
+                    RoomStore.pushObjectIds(rId, objIds[i]);
+                    delete objIds[i];
+                    Player.setObjectIds(CurrentPlayerId.get(), objIds);
+                    break;
+                }
+            }
+        }
+        return 0;
+    }
 
     // MOVE TO ITS OWN SYTEM -- MEATMOVER
     /* handle MOVEMENT to DIRECTIONs or THINGs */

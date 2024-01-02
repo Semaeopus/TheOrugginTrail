@@ -69,7 +69,8 @@ enum ActionType {
   Kick,
   Lock,
   Unlock,
-  Open
+  Open,
+  Drop
 }
 
 enum ObjectType {
