@@ -166,7 +166,7 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
                     Output.set("You picked it up");
                     Player.pushObjectIds(CurrentPlayerId.get(), objIds[i]);
 
-                    objIds[i] = 999;
+                    delete objIds[i];
 
                     RoomStore.setObjectIds(rId, objIds);
                     break;
