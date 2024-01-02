@@ -5,7 +5,7 @@ pragma solidity >=0.8.21;
 import {console} from "forge-std/console.sol";
 
 import {System} from "@latticexyz/world/src/System.sol";
-import {Player, Output, CurrentPlayerId, RoomStore, RoomStoreData, ActionStore, DirObjStore, DirObjStoreData, TextDef} from "../codegen/index.sol";
+import {ObjectStoreData, ObjectStore, Player, Output, CurrentPlayerId, RoomStore, RoomStoreData, ActionStore, DirObjStore, DirObjStoreData, TextDef} from "../codegen/index.sol";
 import {ActionType, RoomType, ObjectType, CommandError, DirectionType} from "../codegen/common.sol";
 import {CommandLookups} from "./CommandLookup.sol";
 import {GameConstants, ErrCodes, ResCodes} from "../constants/defines.sol";
@@ -56,21 +56,22 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
 
     function spawn(uint32 startId) public {
         console.log("spawn");
-        // start on the mountain
-        _enterRoom(0);
+        // start on the plain
+        _enterRoom(1);
     }
 
     function _describeRoom(uint32 rId) private returns (string memory) {
         console.log("--------->DescribeRoom:");
         RoomStoreData memory currRoom = RoomStore.get(rId);
         return string(abi.encodePacked(currRoom.description, "\n",
-            "You can go", _describeActions(rId))
+            "You can go", _describeActions(rId), _describeObjects(rId))
         );
     }
 
     // MOVE TO OWN SYSTEM -- MEATWHISPERER
     /* build up the text description strings for general output */
     function _describeActions(uint32 rId) private returns (string memory) {
+        console.log("--------->DescribeActions:");
         RoomStoreData memory currRm = RoomStore.get(rId);
         string[8] memory dirStrings;
         string memory msgStr;
@@ -93,6 +94,36 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
         return msgStr;
     }
 
+    function _describeObjects(uint32 rId) private returns (string memory) {
+        console.log("--------->DescribeObjects:");
+
+        RoomStoreData memory currRm = RoomStore.get(rId);
+
+        if (currRm.objectIds.length == 0) return "";
+
+        string[8] memory objStrings;
+        string memory msgStr;
+        for (uint8 i = 0; i < currRm.objectIds.length; i++) {
+            ObjectStoreData memory obj = ObjectStore.get(currRm.objectIds[i]);
+
+            if (obj.objectType == ObjectType.Ball) {
+                objStrings[i] = " Ball";
+            } else if (obj.objectType == ObjectType.Key) {
+                objStrings[i] = " Key";
+            } else if (obj.objectType == ObjectType.Knife) {
+                objStrings[i] = " Knife";
+            } else if (obj.objectType == ObjectType.Bottle) {
+                objStrings[i] = " Bottle";
+            }
+        }
+
+        msgStr = "\nThis room contains";
+        for (uint16 i = 0; i < objStrings.length; i++) {
+            msgStr = string(abi.encodePacked(msgStr, objStrings[i]));
+        }
+        return msgStr;
+    }
+
     function _enterRoom(uint32 rId) private returns (uint8 err) {
         console.log("--------->CURR_RM:", rId);
         Player.setRoomId(CurrentPlayerId.get(), rId);
@@ -102,10 +133,50 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
 
     // MOVE TO OWN SYSTEM -- MEATCOMMANDER
     /* handle NON MOVEMENT VERBS */
-    function _handleAction(string[] memory tokens, uint32 currRmId) private returns (uint8 err) {
+    function _handleAction(string[] memory tokens, uint32 rId) private returns (uint8 err) {
         console.log("---->HDL_ACT", tokens[1]);
+
+        string memory tok1 = tokens[0];
+
+        if (cmdLookup[tok1] == ActionType.Take) {
+            return _take(tokens, rId);
+        }
+
         return 0;
     }
+
+
+    function _take(string[] memory tokens, uint32 rId) private returns (uint8 err) {
+        console.log("----->TAKE :", tokens[1]);
+        uint8 tok_err;
+        string memory tok = tokens[1];
+
+        ObjectType objType = objLookup[tok];
+
+        if (objType != ObjectType.None) {
+
+            uint32[] memory objIds = RoomStore.getObjectIds(rId);
+
+            for(uint8 i = 0 ; i < objIds.length ; i++) {
+
+                ObjectType testType = ObjectStore.getObjectType(objIds[i]);
+
+                if(testType == objType) {
+
+                    Output.set("You picked it up");
+                    Player.pushObjectIds(CurrentPlayerId.get(), objIds[i]);
+
+                    objIds[i] = 999;
+
+                    RoomStore.setObjectIds(rId, objIds);
+                    break;
+                }
+            }
+        }
+
+        return 0;
+    }
+
 
     // MOVE TO ITS OWN SYTEM -- MEATMOVER
     /* handle MOVEMENT to DIRECTIONs or THINGs */
@@ -197,7 +268,6 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
 
         uint32 rId = Player.getRoomId(CurrentPlayerId.get());
 
-
         uint8 err;
         // guaranteed to init to 0 value
         if (tokens.length > MAX_TOK) {
@@ -251,5 +321,7 @@ contract MeatPuppetSystem is System, GameConstants, ErrCodes, ResCodes, CommandL
         }
         return eMsg;
     }
+
+
 }
 

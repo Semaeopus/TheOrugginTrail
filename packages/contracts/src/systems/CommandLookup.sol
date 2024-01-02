@@ -4,18 +4,20 @@ pragma solidity >=0.8.21;
 
 //import {System} from "@latticexyz/world/src/System.sol";
 import {Output} from "../codegen/index.sol";
-import {ActionType, DirectionType, GrammarType} from "../codegen/common.sol";
+import {ObjectType, ActionType, DirectionType, GrammarType} from "../codegen/common.sol";
 
 contract CommandLookups {
 
     // some maps for lookups
     mapping (string => ActionType) public cmdLookup;
+    mapping (string => ObjectType) public objLookup;
     mapping (string => DirectionType) public dirLookup;
     mapping (string => GrammarType) public grammarLookup;
-    
+
     function initCLS() public returns (uint32) {
         Output.set('initCES called...');
         setupCmds();
+        setupObjects();
         setupDirs();
         setupGrammar();
         return 0;
@@ -48,9 +50,17 @@ contract CommandLookups {
         dirLookup["DOWN"]   = DirectionType.Down;
     }
 
+
+    function setupObjects () private returns (uint32) {
+        objLookup["BALL"]  = ObjectType.Ball;
+        objLookup["KEY"]  = ObjectType.Key;
+        objLookup["KNIFE"]   = ObjectType.Knife;
+        objLookup["BOTTLE"]   = ObjectType.Bottle;
+    }
+
     function setupGrammar () private returns (uint32) {
-       grammarLookup["The"] = GrammarType.DefiniteArticle; 
+       grammarLookup["The"] = GrammarType.DefiniteArticle;
        grammarLookup["To"]  = GrammarType.Preposition;
     }
-    
+
 }
